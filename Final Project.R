@@ -230,3 +230,145 @@ displaced_stats <- topcause %>%
             disp_per_occurrence = sum_disp/count_occurrences)
 ggplot(displaced_stats, aes(Main.cause)) + geom_bar(aes(weight = displaced_stats$disp_per_occurrence, fill = displaced_stats$Main.cause)) +
   labs(title = "People Displaced per Flood by Cause of Flood", x = "Cause of Flood", y = "Displaced per Occurrence") + theme_bw() + theme(legend.position="none", text = element_text(size=10))
+dead_countries <- topcause %>% 
+  group_by(Country) %>% 
+  summarise(mean_deaths = mean(Dead),
+            max_deaths = max(Dead),
+            sum_deaths = sum(Dead),
+            count_occurrences = n(),
+            dead_per_occurrence = sum_deaths/count_occurrences) %>% 
+            arrange(desc(count_occurrences))
+head <- head(dead_countries, n = 10)
+ggplot(head, aes(head$Country)) + geom_bar(aes(weight = head$dead_per_occurrence, fill = head$Country)) +
+  labs(title = "People Killed per Flood by Country", x = "Country", y = "Deaths per Occurrence") + theme_bw() + theme(legend.position="none", text = element_text(size=10))
+  disp_countries <- topcause %>% 
+  group_by(Country) %>% 
+  summarise(mean_disp = mean(Displaced),
+            max_disp = max(Displaced),
+            sum_disp = sum(Displaced),
+            count_occurrences = n(),
+            disp_per_occurrence = sum_disp/count_occurrences) %>% 
+            arrange(desc(count_occurrences))
+head <- head(disp_countries, n = 10)
+ggplot(head, aes(head$Country)) + geom_bar(aes(weight = head$disp_per_occurrence, fill = head$Country)) +
+  labs(title = "People Displaced per Flood by Country", x = "Country", y = "Displaced per Occurrence") + theme_bw() + theme(legend.position="none", text = element_text(size=10))
+  
+  library(ggplot2)
+library(dplyr)
+library(data.table)
+library(ggmap)
+library(maps)
+library(stringr)
+flood8$Main.cause<-tolower(flood8$Main.cause)
+flood8$Main.cause<- as.character(flood8$Main.cause)
+dt = flood8
+Sys.setlocale("LC_TIME","C")
+#We manage the data and 
+
+China_dt = dt[dt$Country == "China", c("Main.cause","Dead")]
+
+China_dt = China_dt[China_dt$Main.cause %in% c("heavy rain","monsoonal rain","torrential rain","brief torrential rain"),   ]
+
+China_dt$Dead = as.numeric(as.character(China_dt$Dead ))
+
+
+
+India_dt = dt[dt$Country == "India", c("Main.cause","Dead")]
+
+India_dt = India_dt[India_dt$Main.cause %in% c("heavy rain","monsoonal rain","torrential rain","brief torrential rain"),   ]
+
+India_dt$Dead = as.numeric(as.character(India_dt$Dead ))
+
+
+USA_dt = dt[dt$Country == "USA", c("Main.cause","Dead")]
+
+USA_dt = USA_dt[USA_dt$Main.cause %in% c("heavy rain","monsoonal rain","torrential rain","brief torrential rain"),]
+USA_dt$Dead = as.numeric(as.character(USA_dt$Dead ))
+
+
+subset(China_dt, select=c("Main.cause", "Dead")) -> a1
+a1%>%
+  group_by(Main.cause)%>%
+  summarise( Dead_China = sum(Dead) )%>%
+  as.data.frame() -> a1
+
+subset(India_dt, select=c("Main.cause", "Dead")) -> a2
+a2%>%
+  group_by(Main.cause)%>%
+  summarise( Dead_India = sum(Dead) )%>%
+  as.data.frame() -> a2
+
+subset(USA_dt, select=c("Main.cause", "Dead")) -> a3
+a3%>%
+  group_by(Main.cause)%>%
+  summarise( Dead_USA = sum(Dead) )%>%
+  as.data.frame() -> a3
+
+#Then we merge them to one table.
+merge(a1,a2,by = "Main.cause",all=T) -> a0
+merge(a0,a3,by = "Main.cause", all=T) -> a
+#Then we replace NA with 0 in the table, and knit the table.
+a[is.na(a)] <- 0
+knitr::kable(a)
+  
+  three_dt = dt[dt$Country == "China"|dt$Country == "India"|dt$Country == "USA", c("Main.cause","Dead","Country")]
+three_dt = three_dt[three_dt$Main.cause %in% c("heavy rain","monsoonal rain","torrential rain","brief torrential rain"),   ]
+
+ three_dt$Dead= as.numeric(as.character(three_dt$Dead ))
+
+ggplot(three_dt, aes(x=Country,y=Main.cause)) + geom_count(aes(color =Main.cause,size=Dead))+scale_size_area(max_size = 10) +labs(title = "Deaths of Riany Floods in Three Countries") +theme(legend.position="left")+theme_bw()
+  flood8 <- read.csv("C:/Users/sony/Desktop/STAT 605/Final Project/Project/flood.csv")
+library(ggplot2)
+library(dplyr)
+library(data.table)
+library(ggmap)
+library(maps)
+library(stringr)
+library(XML)
+
+colnames(flood8)[colnames(flood8) == "Centroid.Y"] <- "latitude"
+colnames(flood8)[colnames(flood8) == "Centroid.X"] <- "longitude"
+flood8$Main.cause<-tolower(flood8$Main.cause)
+flood8$Main.cause<- as.character(flood8$Main.cause)
+dt = flood8
+dt = flood8
+
+China_dt2 = dt[dt$Country == "China", c("Main.cause","Dead","latitude","longitude")]
+China_dt2 = China_dt2[China_dt2$Main.cause %in% c("heavy rain","monsoonal rain","torrential rain","brief torrential rain"),   ]
+
+India_dt2 = dt[dt$Country == "India", c("Main.cause","Dead","latitude","longitude")]
+India_dt2 = India_dt2[India_dt2$Main.cause %in% c("heavy rain","monsoonal rain","torrential rain","brief torrential rain"),   ]
+
+USA_dt2 = dt[dt$Country == "USA", c("Main.cause","Dead","latitude","longitude")]
+USA_dt2 = USA_dt2[USA_dt2$Main.cause %in% c("heavy rain","monsoonal rain","torrential rain","brief torrential rain"),   ]
+map3 <- get_map(location = 'USA', zoom = 4)
+
+USA_dt2$latitude <- as.numeric(as.character(USA_dt2$latitude))
+USA_dt2$longitude <- as.numeric(as.character(USA_dt2$longitude))
+USA_dt2$Dead <- as.numeric(as.character(USA_dt2$Dead))
+
+
+map_USA <- ggmap(map3) + geom_point(data = USA_dt2,aes(x=longitude, y=latitude,colour = Main.cause,size = Dead))+scale_size_area(max_size = 10) + labs(title = "Death of Rainy Flood in USA")+theme(legend.position="left")
+map_USA
+  map1 <- get_map(location = 'China', zoom = 4)
+
+
+China_dt2$latitude <- as.numeric(as.character(China_dt2$latitude))
+China_dt2$longitude <- as.numeric(as.character(China_dt2$longitude))
+China_dt2$Dead <- as.numeric(as.character(China_dt2$Dead))
+
+
+map_China <- ggmap(map1) + geom_point(data = China_dt2,aes(x=longitude, y=latitude,colour = Main.cause,size = Dead)) +scale_size_area(max_size = 10)+ labs(title = "Death of Riany Flood in China")+theme(legend.position="left")
+map_China
+  map2 <- get_map(location = 'India', zoom = 5)
+
+
+India_dt2$latitude <- as.numeric(as.character(India_dt2$latitude))
+India_dt2$longitude <- as.numeric(as.character(India_dt2$longitude))
+India_dt2$Dead <- as.numeric(as.character(India_dt2$Dead))
+
+
+map_India <- ggmap(map2) + geom_point(data = India_dt2,aes(x=longitude, y=latitude,colour = Main.cause,size = Dead)) +scale_size_area(max_size = 10)+ labs(title = "Death of Rainy Flood in India")+theme(legend.position="left")
+map_India
+  
+ 
