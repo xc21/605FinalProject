@@ -128,6 +128,41 @@ for (i in 1:nrow(flood)){
     flood$Duration.length[i]<-"VL" #stands for very long
     
   }
+    
+    #the pie chart with "other" included
+bp2<- ggplot(flood_SVL, aes(x=factor(TopCountry,levels=names(sort(table(TopCountry),increasing=TRUE))), y="", fill=TopCountry))+geom_bar(width = 1,stat = "identity")
+pie2 <- bp2 + coord_polar("y") +ylab("")+xlab("") + theme_minimal()+theme(axis.title.x=element_blank(),axis.title.y=element_blank(), legend.position="none",axis.text = element_blank())+labs(title="with others included")
+
+grid.newpage()
+vp4<-viewport(x=0.35,y=0.5,height=1,width=1)
+vp5<-viewport(x=0.85,y=0.25,height=0.5,width=0.5)
+print(pie,vp=vp4)
+print(pie2,vp=vp5)
+  
+  #create a df or something else with the summary output.
+
+temp <- row.names(as.array(summary(flood$Main.cause, max=11))) 
+flood$Main.cause<-tolower(flood$Main.cause)
+flood$Main.cause<- as.character(flood$Main.cause) 
+temp<-tolower(temp)
+
+
+#pull out top 10 most frequence causes, and list other not that frequent causes as "other"
+
+flood$TopCause <- ifelse(
+  #condition: match flood$Main.cause with row.names in summary data frame
+  flood$Main.cause %in% temp, 
+  # if satisfies the condition, then it should be named as flood$Main.cause
+  flood$Main.cause, 
+  ## else it should be named "Other"
+  "Other" 
+)
+#factorize the output
+flood$TopCause<- as.factor(flood$TopCause)
+Top_Causes<- factor(flood$TopCause,
+                    levels=names(sort(table(flood$TopCause),increasing=TRUE)))
+
+ggplot(flood,aes(x=Top_Causes))+ geom_bar(fill=rainbow(8)) + coord_flip() + labs(title="Top 8 Main Causes of Floods") + theme_bw()+xlab("Top Causes")
 }
 flood_noNA<- flood[!(flood$Severity..=="#N/A"),]
 ggplot(flood_noNA) + aes(x = Severity.., y = Duration.length) + geom_count() + labs(title="Flood Severity v.s Duration Length")+ theme_bw()
@@ -156,3 +191,42 @@ library(gridBase)
 
 bp<- ggplot(flood_SVL_temp, aes(x=factor(TopCountry,levels=names(sort(table(TopCountry),increasing=TRUE))), y="", fill=TopCountry))+geom_bar(width = 1,stat = "identity")
 pie <- bp + coord_polar("y") +ylab("")+xlab("")+labs(title="Long & Severe floods Among Countries")+ theme_minimal()+theme(axis.text = element_blank(), legend.position="left")
+
+  topcause <- flood1 %>% 
+  select(latitude, longitude, Main.cause, Dead, Country, Displaced)
+
+topcause$Main.cause <- str_to_lower(topcause$Main.cause)
+
+topcause$Main.cause[grepl("tropical storm", topcause$Main.cause)]<-"Tropical Storm"
+topcause$Main.cause[grepl("typhoon", topcause$Main.cause)]<-"Typhoon"
+topcause$Main.cause[grepl("tropical cyclone", topcause$Main.cause)]<-"Tropical Cyclone"
+topcause$Main.cause[grepl("snow", topcause$Main.cause)]<-"Ice/Snow"
+topcause$Main.cause[grepl("ice", topcause$Main.cause)]<-"Ice/Snow"
+topcause$Main.cause[grepl("monsoon", topcause$Main.cause)]<-"Monsoonal Rain"
+topcause$Main.cause[grepl("heavy rain", topcause$Main.cause)]<-"Heavy Rain"
+
+topcause <- topcause %>%
+  filter(Main.cause %in% c("Tropical Storm","Ice/Snow","Monsoonal Rain", "Heavy Rain", "Brief Torrential Rain", "Torrential Rain", "Typhoon", "Tropical Cyclone"))
+  map+geom_point(data=subset(topcause, Main.cause %in% c("Tropical Storm","Ice/Snow","Monsoonal Rain", "Brief Torrential Rain", "Torrential Rain", "Typhoon", "Tropical Cyclone")), aes(x=longitude, y=latitude, color = Main.cause), size = 1, alpha = .7) + labs(title = "Floods Around the World by Cause", x = "Longitude", y = "Latitude", color = "Main Cause") + theme(legend.position="bottom")
+  
+  topcause$Dead <- as.numeric(as.character(topcause$Dead))
+dead_stats <- topcause %>% 
+  group_by(Main.cause) %>% 
+  summarise(mean_deaths = mean(Dead),
+            max_deaths = max(Dead),
+            sum_deaths = sum(Dead),
+            count_occurrences = n(),
+            death_per_occurrence = sum_deaths/count_occurrences)
+ggplot(dead_stats, aes(Main.cause)) + geom_bar(aes(weight = dead_stats$death_per_occurrence, fill = dead_stats$Main.cause)) + 
+  labs(title = "People Killed per Flood by Cause of Flood", x = "Cause of Flood", y = "Deaths per Occurrence") + theme_bw() + theme(legend.position="none", text = element_text(size=10))
+  
+  topcause$Displaced <- as.numeric(as.character(topcause$Displaced))
+displaced_stats <- topcause %>% 
+  group_by(Main.cause) %>% 
+  summarise(mean_disp = mean(Displaced),
+            max_disp = max(Displaced),
+            sum_disp = sum(Displaced),
+            count_occurrences = n(),
+            disp_per_occurrence = sum_disp/count_occurrences)
+ggplot(displaced_stats, aes(Main.cause)) + geom_bar(aes(weight = displaced_stats$disp_per_occurrence, fill = displaced_stats$Main.cause)) +
+  labs(title = "People Displaced per Flood by Cause of Flood", x = "Cause of Flood", y = "Displaced per Occurrence") + theme_bw() + theme(legend.position="none", text = element_text(size=10))
